@@ -1,0 +1,59 @@
+sudo apt install default-jre default-jdk
+sudo useradd -m kafka -s /usr/sbin/nologin
+cd /opt/
+sudo wget https://dlcdn.apache.org/kafka/3.0.0/kafka_2.13-3.0.0.tgz
+sudo tar xzf kafka_2.13-3.0.0.tgz
+sudo rm kafka_2.13-3.0.0.tgz
+sudo vi kafka-3.0.0-src/config/server.properties
+##### Herbir node‘de farklı kafka config ayarı yapılır#######
+####### kafka01 node#####
+broker.id=1
+advertised.host.name=kafka01
+advertised.listeners=PLAINTEXT://kafka01:9092
+zookeeper.connect=10.10.10.181:2181,10.10.10.51:2181,10.10.10.128:2181
+default.replication.factor=3
+#delete.topic.enable = true
+###### kafka02 node######
+broker.id=2
+advertised.host.name=kafka02
+advertised.listeners=PLAINTEXT://kafka02:9092
+zookeeper.connect=10.10.10.181:2181,10.10.10.51:2181,10.10.10.128:2181
+default.replication.factor=3
+#delete.topic.enable = true
+###### kafka03 node######
+broker.id=3
+advertised.host.name=kafka03
+advertised.listeners=PLAINTEXT://kafka03:9092
+zookeeper.connect=10.10.10.181:2181,10.10.10.51:2181,10.10.10.128:2181
+default.replication.factor=3
+#delete.topic.enable = true
+sudo /opt/kafka_2.13-3.0.0/bin/kafka-server-start.sh /opt/kafka_2.13-3.0.0/config/server.properties
+sudo /opt/kafka_2.13-3.0.0/bin/kafka-server-stop.sh /opt/kafka_2.13-3.0.0/config/server.properties
+sudo chown -R kafka:kafka /opt/kafka_2.13-3.0.0/
+##### Kafka systemd servis dosyasını create edelim#######
+sudo vi /lib/systemd/system/kafka.service
+"
+[Unit]
+Description=Kafka Daemon
+Documentation=https://kafka.apache.org
+Requires=zookeeper.service
+After=zookeeper.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/kafka_2.13-3.0.0
+User=kafka
+Group=kafka
+Environment="JAVA_HOME=/usr/lib/jvm/java-1.11.0-openjdk-amd64"
+ExecStart=/opt/kafka_2.13-3.0.0/bin/kafka-server-start.sh /opt/kafka_2.13-3.0.0/config/server.properties
+ExecStop=/opt/kafka_2.13-3.0.0/bin/kafka-server-stop.sh /opt/kafka_2.13-3.0.0/config/server.properties
+TimeoutSec=30
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
+"
+sudo systemctl daemon-reload
+sudo systemctl start kafka.service
+sudo systemctl enable kafka.service
+sudo systemctl status kafka.service
